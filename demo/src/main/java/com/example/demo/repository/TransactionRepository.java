@@ -16,7 +16,7 @@ public interface TransactionRepository  extends CrudRepository<Transaction, Long
 
     // SELECT DATE(date) as date, SUM(earning) as earning FROM transaction WHERE user_id= 1 AND date >= '2021-07-05' AND date <= '2021-09-05' GROUP BY DATE(date) ORDER BY date ASC;
     @Query(value = "SELECT DATE(date) as date, SUM(earning) as earning FROM transaction WHERE user_id= :id AND DATE(date) >= :startDate AND DATE(date) <= :endDate GROUP BY DATE(date) ORDER BY date ASC", nativeQuery = true)
-    List<List> findStatsByUserId(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<List> findStatsByUserIdDaily(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
     //List<Map<String, String>> findStatsByUserId(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
 
     //@Query(value = "SELECT * FROM transaction WHERE user_id= :id AND date >= :startDate AND date <= :endDate", nativeQuery = true)

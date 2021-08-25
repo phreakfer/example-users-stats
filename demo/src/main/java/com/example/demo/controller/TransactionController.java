@@ -2,10 +2,9 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.StatDTO;
 import com.example.demo.dto.TransactionDTO;
-import com.example.demo.dto.UserDTO;
-import com.example.demo.entity.Stat;
 import com.example.demo.entity.Transaction;
 import com.example.demo.entity.User;
+import com.example.demo.enums.TimeEnum;
 import com.example.demo.repository.TransactionRepository;
 import com.example.demo.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
@@ -61,24 +58,21 @@ public class TransactionController {
             @PathVariable Long id,
             @RequestParam(value = "startdate", required=false) @DateTimeFormat(pattern="yyyy-MM-dd") Date startDate,
             @RequestParam(value = "enddate", required=false) @DateTimeFormat(pattern="yyyy-MM-dd") Date endDate,
-            @RequestParam(value = "type", required=false) Integer type){
-        //Date startDate = new SimpleDateFormat("yyyy-MM-dd").parse(sStartDate);
-        //Date endDate = new SimpleDateFormat("yyyy-MM-dd").parse(sEndDate);
-        //List<Map<String, String>> rows = transactionRepository.findStatsByUserId(id,startDate,endDate);
+            @RequestParam(value = "timeenum", required=false, defaultValue = "DAILY") TimeEnum timeEnum){
 
-        if (type == null || type == 0) {
+        if (timeEnum == TimeEnum.DAILY) {
             // DAILY
-            List<List> rows = transactionRepository.findStatsByUserId(id, startDate, endDate);
+            List<List> rows = transactionRepository.findStatsByUserIdDaily(id, startDate, endDate);
             TreeMap<String, StatDTO> lista = new TreeMap();
             for (int i = 0; i < rows.size(); i++) {
                 List row = rows.get(i);
                 String stringDate = row.get(0).toString();
-                double earning = new Double(row.get(1).toString());
+                BigDecimal earning = new BigDecimal(row.get(1).toString());
                 String key = stringDate + "#" + stringDate;
                 lista.put(key, new StatDTO(stringDate, stringDate, earning));
             }
             // Relleno DAILY con 0
-            Double earning;
+            BigDecimal earning;
             SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
             int days = GetDaysBetweenTwoDates(startDate, endDate);
             List<StatDTO> listafull = new ArrayList<StatDTO>();
@@ -91,7 +85,7 @@ public class TransactionController {
                 if (isKeyPresent) {
                     earning = lista.get(key).getEarning();
                 } else {
-                    earning = new Double(0);
+                    earning = new BigDecimal(0);
                 }
                 listafull.add(new StatDTO(stringDate, stringDate, earning));
             }
@@ -106,7 +100,7 @@ public class TransactionController {
                 List row = rows.get(i);
                 String stringWeek = row.get(0).toString();
                 String stringYear = row.get(1).toString();
-                double earning = new Double(row.get(2).toString());
+                BigDecimal earning = new BigDecimal(row.get(2).toString());
                 Date firstDayOfWeek = getRangeFromWeekYear(Integer.parseInt(stringWeek), Integer.parseInt(stringYear), 0);
                 Date lastDayOfWeek = getRangeFromWeekYear(Integer.parseInt(stringWeek), Integer.parseInt(stringYear), 1);
                 String from, to;
@@ -118,7 +112,7 @@ public class TransactionController {
                 lista.put(key, new StatDTO(from, to, earning));
             }
             // Relleno el WEEKLY con 0
-            Double earning;
+            BigDecimal earning;
             List<StatDTO> listafull = new ArrayList<StatDTO>();
             int weekStartDate = getWeekAndYearFromDate(startDate,0);
             int yearStartDate = getWeekAndYearFromDate(startDate,1);
@@ -140,7 +134,7 @@ public class TransactionController {
                 if (isKeyPresent) {
                     earning = lista.get(key).getEarning();
                 } else {
-                    earning = new Double(0);
+                    earning = new BigDecimal(0);
                 }
                 listafull.add(new StatDTO(from, to, earning));
                 date = plusDaysToDate(date, 7);

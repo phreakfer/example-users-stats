@@ -1,9 +1,9 @@
 package com.example.demo.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.springframework.data.annotation.CreatedDate;
-
+import org.hibernate.annotations.CreationTimestamp;
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Entity
@@ -13,8 +13,8 @@ public class Transaction {
     private long id;
     private String field1;
     private String field2;
-    private double earning;
-    //@CreatedDate
+    private BigDecimal earning;
+    //@CreationTimestamp
     private Date date;
     @ManyToOne()
     @JoinColumn(name = "user_id")
@@ -30,7 +30,7 @@ public class Transaction {
     public String getField2() {
         return field2;
     }
-    public double getEarning() {
+    public BigDecimal getEarning() {
         return earning;
     }
     public Date getDate() {
@@ -49,7 +49,7 @@ public class Transaction {
     public void setField2(String field2) {
         this.field2 = field2;
     }
-    public void setEarning(double earning) {
+    public void setEarning(BigDecimal earning) {
         this.earning = earning;
     }
     public void setDate(Date date) {
@@ -60,7 +60,7 @@ public class Transaction {
     }
 
     public Transaction(){}
-    public Transaction(String field1, String field2, double earning, User user) {
+    public Transaction(String field1, String field2, BigDecimal earning, User user) {
         this.field1 = field1;
         this.field2 = field2;
         this.earning = earning;

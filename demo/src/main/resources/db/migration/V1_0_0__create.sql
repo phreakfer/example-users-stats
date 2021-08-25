@@ -9,7 +9,7 @@ CREATE TABLE `user` (
 CREATE TABLE `transaction` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `date` datetime DEFAULT NULL,
-  `earning` double NOT NULL,
+  `earning` decimal(19,2) DEFAULT NULL,
   `field1` varchar(255) DEFAULT NULL,
   `field2` varchar(255) DEFAULT NULL,
   `user_id` bigint DEFAULT NULL,

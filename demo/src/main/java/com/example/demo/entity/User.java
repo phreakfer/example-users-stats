@@ -13,7 +13,7 @@ public class User {
     private Long id;
     private String name;
     private String address;
-    //@CreatedDate
+    //@CreationTimestamp
     private Date date;
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Transaction> transaction;
