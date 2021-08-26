@@ -23,3 +23,5 @@ public class StatDTO {
         this.earning = earning;
     }
 }
+
+
