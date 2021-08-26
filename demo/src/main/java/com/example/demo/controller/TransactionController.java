@@ -91,7 +91,7 @@ public class TransactionController {
             }
             return new ResponseEntity<>(listafull, HttpStatus.OK);
         }
-        else{
+        else if (timeEnum == TimeEnum.WEEKLY){
             // WEEKLY
             SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
             List<List> rows = transactionRepository.findStatsByUserIdWeekly(id, startDate, endDate);
@@ -141,6 +141,56 @@ public class TransactionController {
             }while(date.before(plusDaysToDate(lastDayOfWeekEndDate,1)) || date.equals(plusDaysToDate(lastDayOfWeekEndDate,1)));
             return new ResponseEntity<>(listafull, HttpStatus.OK);
         }
+        else{
+            //MONTHLY
+            SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
+            List<List> rows = transactionRepository.findStatsByUserIdMonthly(id, startDate, endDate);
+            TreeMap<String, StatDTO> lista = new TreeMap();
+            for (int i = 0; i < rows.size(); i++) {
+                List row = rows.get(i);
+                String stringMonth = row.get(0).toString();
+                String stringYear = row.get(1).toString();
+                BigDecimal earning = new BigDecimal(row.get(2).toString());
+                Date firstDayOfMonth = getRangeFromMonthYear(Integer.parseInt(stringMonth), Integer.parseInt(stringYear), 0);
+                Date lastDayOfMonth = getRangeFromMonthYear(Integer.parseInt(stringMonth), Integer.parseInt(stringYear), 1);
+                String from, to;
+                if (firstDayOfMonth.before(startDate)){from = formatDate.format(startDate);}
+                else{ from = formatDate.format(firstDayOfMonth);}
+                if (lastDayOfMonth.after(endDate)){ to = formatDate.format(endDate);}
+                else{ to = formatDate.format(lastDayOfMonth);}
+                String key = from + "#" + to;
+                lista.put(key, new StatDTO(from, to, earning));
+            }
+            // Relleno el MONTHLY con 0
+            BigDecimal earning;
+            List<StatDTO> listafull = new ArrayList<StatDTO>();
+            int monthStartDate = getMonthAndYearFromDate(startDate,0);
+            int yearStartDate = getMonthAndYearFromDate(startDate,1);
+            int monthEndDate = getMonthAndYearFromDate(endDate,0);
+            int yearEndDate = getMonthAndYearFromDate(endDate,1);
+            Date firstDayOfMonthStartDate =  getRangeFromMonthYear(monthStartDate, yearStartDate,0);
+            Date lastDayOfMonthEndDate =  getRangeFromMonthYear(monthEndDate, yearEndDate,1);
+            Date date = firstDayOfMonthStartDate;
+            do{
+                Date firstDayOfMonth = date;
+                Date lastDayOfMonth = plusDaysToDate(plusMonthsToDate(date,1),-1);
+                String from, to;
+                if (firstDayOfMonth.before(startDate)){from = formatDate.format(startDate);}
+                else{ from = formatDate.format(firstDayOfMonth);}
+                if (lastDayOfMonth.after(endDate)){ to = formatDate.format(endDate);}
+                else{ to = formatDate.format(lastDayOfMonth);}
+                String key = from + "#" + to;
+                boolean isKeyPresent = lista.containsKey(key);
+                if (isKeyPresent) {
+                    earning = lista.get(key).getEarning();
+                } else {
+                    earning = new BigDecimal(0);
+                }
+                listafull.add(new StatDTO(from, to, earning));
+                date = plusDaysToDate(lastDayOfMonth, 1);
+            }while(date.before(lastDayOfMonthEndDate) || date.equals(lastDayOfMonthEndDate));
+            return new ResponseEntity<>(listafull, HttpStatus.OK);
+        }
 
     }
 
@@ -161,6 +211,25 @@ public class TransactionController {
             return year;
         }
     }
+
+    public int getMonthAndYearFromDate(Date date, int MonthOrYear){
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        //calendar.setFirstDayOfWeek(Calendar.SUNDAY);
+        calendar.set(Calendar.HOUR_OF_DAY, 0); // ! clear would not reset the hour of day !
+        calendar.clear(Calendar.MINUTE);
+        calendar.clear(Calendar.SECOND);
+        calendar.clear(Calendar.MILLISECOND);
+        if (MonthOrYear == 0){
+            int month = calendar.get(Calendar.MONTH);
+            return month+1;
+        }
+        else{
+            int year = calendar.get(Calendar.YEAR);
+            return year;
+        }
+    }
+
     public Date getRangeFromWeekYear(int week, int year, int StartOrEnd) {
         Calendar calendar = Calendar.getInstance();
         calendar.clear();
@@ -183,6 +252,29 @@ public class TransactionController {
         }
     }
 
+
+    public Date getRangeFromMonthYear(int month, int year, int StartOrEnd) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.clear();
+        //calendar.setFirstDayOfWeek(Calendar.SUNDAY);
+        calendar.set(Calendar.HOUR_OF_DAY, 0); // ! clear would not reset the hour of day !
+        calendar.clear(Calendar.MINUTE);
+        calendar.clear(Calendar.SECOND);
+        calendar.clear(Calendar.MILLISECOND);
+        calendar.set(Calendar.YEAR, year);
+        calendar.set(Calendar.MONTH, month-1);
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        if (StartOrEnd == 0) {
+            Date sDate = calendar.getTime();
+            return sDate;
+        }
+        else{
+            calendar.set(Calendar.DAY_OF_MONTH,calendar.getActualMaximum(calendar.DAY_OF_MONTH));
+            Date eDate = calendar.getTime();
+            return eDate;
+        }
+    }
+
     public int GetDaysBetweenTwoDates(Date startDate, Date endDate){
         return (int)( (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     }
@@ -192,6 +284,14 @@ public class TransactionController {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
         calendar.add(Calendar.DAY_OF_YEAR, days);
+        return calendar.getTime();
+    }
+
+    public static Date plusMonthsToDate(Date date, int months){
+        if (months==0) return date;
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(Calendar.MONTH, months);
         return calendar.getTime();
     }
 

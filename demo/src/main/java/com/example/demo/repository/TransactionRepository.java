@@ -28,5 +28,9 @@ public interface TransactionRepository  extends CrudRepository<Transaction, Long
     // SELECT DATE_FORMAT(date, "%U") as week, DATE_FORMAT(date, "%Y") as year, SUM(earning) as earning FROM transaction WHERE user_id= '1' AND DATE(date) >= '2021-07-05' AND DATE(date) <= '2021-09-05' GROUP BY DATE_FORMAT(date, "%U"), DATE_FORMAT(date, "%Y") ORDER BY CONCAT(week,year) ASC;
     @Query(value = "SELECT DATE_FORMAT(date, \"%U\") as week, DATE_FORMAT(date, \"%Y\") as year, SUM(earning) as earning FROM transaction WHERE user_id= :id AND DATE(date) >= :startDate AND DATE(date) <= :endDate GROUP BY DATE_FORMAT(date, \"%U\"), DATE_FORMAT(date, \"%Y\") ORDER BY CONCAT(week,year) ASC;", nativeQuery = true)
     List<List> findStatsByUserIdWeekly(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
+
+    // SELECT DATE_FORMAT(date, "%m") as month, DATE_FORMAT(date, "%Y") as year, SUM(earning) as earning FROM transaction WHERE user_id= '1' AND DATE(date) >= '2021-07-05' AND DATE(date) <= '2021-09-05' GROUP BY DATE_FORMAT(date, "%m"), DATE_FORMAT(date, "%Y") ORDER BY CONCAT(month,year) ASC;
+    @Query(value = "SELECT DATE_FORMAT(date, \"%m\") as month, DATE_FORMAT(date, \"%Y\") as year, SUM(earning) as earning FROM transaction WHERE user_id= :id AND DATE(date) >= :startDate AND DATE(date) <= :endDate GROUP BY DATE_FORMAT(date, \"%m\"), DATE_FORMAT(date, \"%Y\") ORDER BY CONCAT(month,year) ASC;", nativeQuery = true)
+    List<List> findStatsByUserIdMonthly(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
 }
 
