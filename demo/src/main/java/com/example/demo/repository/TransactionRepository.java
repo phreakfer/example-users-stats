@@ -10,9 +10,10 @@ import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 public interface TransactionRepository  extends CrudRepository<Transaction, Long> {
-    // SELECT DATE(date) as date, SUM(earning) as earning FROM transaction WHERE user_id= 1 AND date >= '2021-07-05' AND date <= '2021-09-05' GROUP BY DATE(date) ORDER BY date ASC;
+    // SELECT DATE(date) as date, SUM(earning) as earning FROM transaction WHERE user_id= 1 AND DATE(date) >= '2021-07-05' AND DATE(date) <= '2021-09-05' GROUP BY DATE(date) ORDER BY date ASC;
     @Query(value = "SELECT DATE(date) as date, SUM(earning) as earning FROM transaction WHERE user_id= :id AND DATE(date) >= :startDate AND DATE(date) <= :endDate GROUP BY DATE(date) ORDER BY date ASC", nativeQuery = true)
     List<List> findStatsByUserIdDaily(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
     /*
@@ -21,7 +22,7 @@ public interface TransactionRepository  extends CrudRepository<Transaction, Long
         DATE(date) AS todate,
         SUM(earning) as earning
     FROM transaction
-    WHERE user_id= 1 AND date >= '2021-07-05' AND date <= '2021-09-05'
+    WHERE user_id= 1 AND DATE(date) >= '2021-07-05' AND DATE(date) <= '2021-09-05'
     GROUP BY fromdate, todate
     ORDER BY fromdate ASC;
      */
@@ -30,10 +31,10 @@ public interface TransactionRepository  extends CrudRepository<Transaction, Long
             "        DATE(date) AS todate,\n" +
             "        SUM(earning) as earning\n" +
             "    FROM transaction\n" +
-            "    WHERE user_id= :id AND date >= :startDate AND date <= :endDate\n" +
+            "    WHERE user_id= :id AND DATE(date) >= :startDate AND DATE(date) <= :endDate\n" +
             "    GROUP BY fromdate, todate\n" +
             "    ORDER BY fromdate ASC;", nativeQuery = true)
-    List<List> findStatsByUserIdDaily2(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<Map<String, Object>> findStatsByUserIdDaily2(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
 
 
     // SELECT DATE_FORMAT(date, "%U") as week, DATE_FORMAT(date, "%Y") as year, SUM(earning) as earning FROM transaction WHERE user_id= '1' AND DATE(date) >= '2021-07-05' AND DATE(date) <= '2021-09-05' GROUP BY DATE_FORMAT(date, "%U"), DATE_FORMAT(date, "%Y") ORDER BY CONCAT(week,year) ASC;
@@ -57,7 +58,7 @@ public interface TransactionRepository  extends CrudRepository<Transaction, Long
             "    WHERE user_id= :id AND DATE(date) >= :startDate AND DATE(date) <= :endDate\n" +
             "    GROUP BY fromdate,todate\n" +
             "    ORDER BY fromdate ASC;", nativeQuery = true)
-    List<List> findStatsByUserIdWeekly2(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<Map<String, Object>> findStatsByUserIdWeekly2(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
 
 
 
@@ -83,7 +84,7 @@ public interface TransactionRepository  extends CrudRepository<Transaction, Long
             "    WHERE user_id= :id AND DATE(date) >= :startDate AND DATE(date) <= :endDate\n" +
             "    GROUP BY fromdate, todate\n" +
             "    ORDER BY fromdate ASC;", nativeQuery = true)
-    List<List> findStatsByUserIdMonthly2(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
+    List<Map<String, Object>> findStatsByUserIdMonthly2(@Param("id") Long id, @Param("startDate") Date startDate, @Param("endDate") Date endDate);
 
 
     // Example JPQL
