@@ -1,13 +1,10 @@
 package com.example.demo.repository;
 
-import com.example.demo.entity.Stat;
 import com.example.demo.entity.Transaction;
-import com.example.demo.entity.User;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;

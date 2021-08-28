@@ -65,8 +65,8 @@ public class TransactionController {
         Date fromDate, toDate;
         BigDecimal earning;
         SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
-        TreeMap<String, StatDTO> lista = new TreeMap();
-        List<StatDTO> listafull = new ArrayList<StatDTO>();
+        TreeMap<String, StatDTO> listBD = new TreeMap();
+        List<StatDTO> listStatDTO = new ArrayList<StatDTO>();
         List<Map<String, Object>> rows;
 
         if (timeEnum == TimeEnum.DAILY) {
@@ -79,7 +79,7 @@ public class TransactionController {
                 stringFromDate = formatDate.format(fromDate);
                 stringToDate = formatDate.format(toDate);
                 key = stringFromDate + "#" + stringToDate;
-                lista.put(key, new StatDTO(stringFromDate, stringToDate, earning));
+                listBD.put(key, new StatDTO(stringFromDate, stringToDate, earning));
             }
             // Fill DAILY with 0
             Date day = startDate;
@@ -89,16 +89,16 @@ public class TransactionController {
                 stringFromDate = formatDate.format(fromDate);
                 stringToDate = formatDate.format(toDate);
                 key = stringFromDate + "#" + stringToDate;
-                boolean isKeyPresent = lista.containsKey(key);
+                boolean isKeyPresent = listBD.containsKey(key);
                 if (isKeyPresent) {
-                    earning = lista.get(key).getEarning();
+                    earning = listBD.get(key).getEarning();
                 } else {
                     earning = new BigDecimal(0);
                 }
-                listafull.add(new StatDTO(stringFromDate, stringToDate, earning));
+                listStatDTO.add(new StatDTO(stringFromDate, stringToDate, earning));
                 day = plusDaysToDate(day, 1);
             }while(day.before(endDate) || day.equals(endDate));
-            return new ResponseEntity<>(listafull, HttpStatus.OK);
+            return new ResponseEntity<>(listStatDTO, HttpStatus.OK);
         }
 
         else if (timeEnum == TimeEnum.WEEKLY) {
@@ -117,7 +117,7 @@ public class TransactionController {
                 stringFromDate = formatDate.format(fromDate);
                 stringToDate = formatDate.format(toDate);
                 key = stringFromDate + "#" + stringToDate;
-                lista.put(key, new StatDTO(stringFromDate, stringToDate, earning));
+                listBD.put(key, new StatDTO(stringFromDate, stringToDate, earning));
             }
             // Fill WEEKLY with 0
             Date firstDayOfWeek = getFirstDayOfWeek(startDate);
@@ -136,16 +136,16 @@ public class TransactionController {
                 stringFromDate = formatDate.format(fromDate);
                 stringToDate = formatDate.format(toDate);
                 key = stringFromDate + "#" + stringToDate;
-                boolean isKeyPresent = lista.containsKey(key);
+                boolean isKeyPresent = listBD.containsKey(key);
                 if (isKeyPresent) {
-                    earning = lista.get(key).getEarning();
+                    earning = listBD.get(key).getEarning();
                 } else {
                     earning = new BigDecimal(0);
                 }
-                listafull.add(new StatDTO(stringFromDate, stringToDate, earning));
+                listStatDTO.add(new StatDTO(stringFromDate, stringToDate, earning));
                 firstDayOfWeek = plusDaysToDate(firstDayOfWeek, 7);
             } while (firstDayOfWeek.before(endDate) || firstDayOfWeek.equals(endDate));
-            return new ResponseEntity<>(listafull, HttpStatus.OK);
+            return new ResponseEntity<>(listStatDTO, HttpStatus.OK);
         }
 
         else {
@@ -164,7 +164,7 @@ public class TransactionController {
                 stringFromDate = formatDate.format(fromDate);
                 stringToDate = formatDate.format(toDate);
                 key = stringFromDate + "#" + stringToDate;
-                lista.put(key, new StatDTO(stringFromDate, stringToDate, earning));
+                listBD.put(key, new StatDTO(stringFromDate, stringToDate, earning));
             }
             // Fill MONTHLY with 0
             Date firstDayOfMonth = getFirstDayOfMonth(startDate);
@@ -183,16 +183,16 @@ public class TransactionController {
                 stringFromDate = formatDate.format(fromDate);
                 stringToDate = formatDate.format(toDate);
                 key = stringFromDate + "#" + stringToDate;
-                boolean isKeyPresent = lista.containsKey(key);
+                boolean isKeyPresent = listBD.containsKey(key);
                 if (isKeyPresent) {
-                    earning = lista.get(key).getEarning();
+                    earning = listBD.get(key).getEarning();
                 } else {
                     earning = new BigDecimal(0);
                 }
-                listafull.add(new StatDTO(stringFromDate, stringToDate, earning));
+                listStatDTO.add(new StatDTO(stringFromDate, stringToDate, earning));
                 firstDayOfMonth = plusMonthsToDate(firstDayOfMonth, 1);
             } while (firstDayOfMonth.before(endDate) || firstDayOfMonth.equals(endDate));
-            return new ResponseEntity<>(listafull, HttpStatus.OK);
+            return new ResponseEntity<>(listStatDTO, HttpStatus.OK);
         }
     }
 
