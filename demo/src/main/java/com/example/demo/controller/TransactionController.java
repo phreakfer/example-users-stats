@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -56,231 +57,147 @@ public class TransactionController {
     @GetMapping("/users/{id}/stats")
     public ResponseEntity<?> getStatsByUser(
             @PathVariable Long id,
-            @RequestParam(value = "startdate", required=false) @DateTimeFormat(pattern="yyyy-MM-dd") Date startDate,
-            @RequestParam(value = "enddate", required=false) @DateTimeFormat(pattern="yyyy-MM-dd") Date endDate,
-            @RequestParam(value = "timeenum", required=false, defaultValue = "DAILY") TimeEnum timeEnum){
+            @RequestParam(value = "startdate", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
+            @RequestParam(value = "enddate", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
+            @RequestParam(value = "timeenum", required = false, defaultValue = "DAILY") TimeEnum timeEnum) throws ParseException {
+
+        String key, stringFromDate, stringToDate;
+        Date fromDate, toDate;
+        BigDecimal earning;
+        SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
+        TreeMap<String, StatDTO> lista = new TreeMap();
+        List<StatDTO> listafull = new ArrayList<StatDTO>();
+        List<Map<String, Object>> rows;
 
         if (timeEnum == TimeEnum.DAILY) {
             // DAILY
-            List<List> rows = transactionRepository.findStatsByUserIdDaily(id, startDate, endDate);
-            TreeMap<String, StatDTO> lista = new TreeMap();
-            for (int i = 0; i < rows.size(); i++) {
-                List row = rows.get(i);
-                String stringDate = row.get(0).toString();
-                BigDecimal earning = new BigDecimal(row.get(1).toString());
-                String key = stringDate + "#" + stringDate;
-                lista.put(key, new StatDTO(stringDate, stringDate, earning));
+            rows = transactionRepository.findStatsByUserIdDaily(id, startDate, endDate);
+            for (Map<String, Object> row : rows){
+                fromDate = formatDate.parse(row.get("fromdate").toString());
+                toDate = formatDate.parse(row.get("todate").toString());
+                earning = new BigDecimal(row.get("earning").toString());
+                stringFromDate = formatDate.format(fromDate);
+                stringToDate = formatDate.format(toDate);
+                key = stringFromDate + "#" + stringToDate;
+                lista.put(key, new StatDTO(stringFromDate, stringToDate, earning));
             }
-            // Relleno DAILY con 0
-            BigDecimal earning;
-            SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
-            int days = GetDaysBetweenTwoDates(startDate, endDate);
-            List<StatDTO> listafull = new ArrayList<StatDTO>();
-            Date date = startDate;
-            for (int i = 0; i <= days; i++) {
-                Date nextDay = plusDaysToDate(date, i);
-                String stringDate = formatDate.format(nextDay);
-                String key = stringDate + "#" + stringDate;
+            // Fill DAILY with 0
+            Date day = startDate;
+            do{
+                fromDate = day;
+                toDate = fromDate;
+                stringFromDate = formatDate.format(fromDate);
+                stringToDate = formatDate.format(toDate);
+                key = stringFromDate + "#" + stringToDate;
                 boolean isKeyPresent = lista.containsKey(key);
                 if (isKeyPresent) {
                     earning = lista.get(key).getEarning();
                 } else {
                     earning = new BigDecimal(0);
                 }
-                listafull.add(new StatDTO(stringDate, stringDate, earning));
-            }
+                listafull.add(new StatDTO(stringFromDate, stringToDate, earning));
+                day = plusDaysToDate(day, 1);
+            }while(day.before(endDate) || day.equals(endDate));
             return new ResponseEntity<>(listafull, HttpStatus.OK);
         }
-        else if (timeEnum == TimeEnum.WEEKLY){
+
+        else if (timeEnum == TimeEnum.WEEKLY) {
             // WEEKLY
-            SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
-            List<List> rows = transactionRepository.findStatsByUserIdWeekly(id, startDate, endDate);
-            TreeMap<String, StatDTO> lista = new TreeMap();
-            for (int i = 0; i < rows.size(); i++) {
-                List row = rows.get(i);
-                String stringWeek = row.get(0).toString();
-                String stringYear = row.get(1).toString();
-                BigDecimal earning = new BigDecimal(row.get(2).toString());
-                Date firstDayOfWeek = getRangeFromWeekYear(Integer.parseInt(stringWeek), Integer.parseInt(stringYear), 0);
-                Date lastDayOfWeek = getRangeFromWeekYear(Integer.parseInt(stringWeek), Integer.parseInt(stringYear), 1);
-                String from, to;
-                if (firstDayOfWeek.before(startDate)){from = formatDate.format(startDate);}
-                else{ from = formatDate.format(firstDayOfWeek);}
-                if (lastDayOfWeek.after(endDate)){ to = formatDate.format(endDate);}
-                else{ to = formatDate.format(lastDayOfWeek);}
-                String key = from + "#" + to;
-                lista.put(key, new StatDTO(from, to, earning));
+            rows = transactionRepository.findStatsByUserIdWeekly(id, startDate, endDate);
+            for (Map<String, Object> row : rows){
+                fromDate = formatDate.parse(row.get("fromdate").toString());
+                toDate = formatDate.parse(row.get("todate").toString());
+                earning = new BigDecimal(row.get("earning").toString());
+                if (fromDate.before(startDate)) {
+                    fromDate = startDate;
+                }
+                if (toDate.after(endDate)) {
+                    toDate = endDate;
+                }
+                stringFromDate = formatDate.format(fromDate);
+                stringToDate = formatDate.format(toDate);
+                key = stringFromDate + "#" + stringToDate;
+                lista.put(key, new StatDTO(stringFromDate, stringToDate, earning));
             }
-            // Relleno el WEEKLY con 0
-            BigDecimal earning;
-            List<StatDTO> listafull = new ArrayList<StatDTO>();
-            int weekStartDate = getWeekAndYearFromDate(startDate,0);
-            int yearStartDate = getWeekAndYearFromDate(startDate,1);
-            int weekEndDate = getWeekAndYearFromDate(endDate,0);
-            int yearEndDate = getWeekAndYearFromDate(endDate,1);
-            Date firstDayOfWeekStartDate =  getRangeFromWeekYear(weekStartDate, yearStartDate,0);
-            Date lastDayOfWeekEndDate =  getRangeFromWeekYear(weekEndDate, yearEndDate,1);
-            Date date = firstDayOfWeekStartDate;
-            do{
-                Date firstDayOfWeek = date;
-                Date lastDayOfWeek = plusDaysToDate(date,6);
-                String from, to;
-                if (firstDayOfWeek.before(startDate)){from = formatDate.format(startDate);}
-                else{ from = formatDate.format(firstDayOfWeek);}
-                if (lastDayOfWeek.after(endDate)){ to = formatDate.format(endDate);}
-                else{ to = formatDate.format(lastDayOfWeek);}
-                String key = from + "#" + to;
+            // Fill WEEKLY with 0
+            Date firstDayOfWeek = getFirstDayOfWeek(startDate);
+            do {
+                Date lastDayOfWeek = plusDaysToDate(firstDayOfWeek, 6);
+                if (firstDayOfWeek.before(startDate)) {
+                    fromDate = startDate;
+                } else {
+                    fromDate = firstDayOfWeek;
+                }
+                if (lastDayOfWeek.after(endDate)) {
+                    toDate = endDate;
+                } else {
+                    toDate = lastDayOfWeek;
+                }
+                stringFromDate = formatDate.format(fromDate);
+                stringToDate = formatDate.format(toDate);
+                key = stringFromDate + "#" + stringToDate;
                 boolean isKeyPresent = lista.containsKey(key);
                 if (isKeyPresent) {
                     earning = lista.get(key).getEarning();
                 } else {
                     earning = new BigDecimal(0);
                 }
-                listafull.add(new StatDTO(from, to, earning));
-                date = plusDaysToDate(date, 7);
-            }while(date.before(plusDaysToDate(lastDayOfWeekEndDate,1)) || date.equals(plusDaysToDate(lastDayOfWeekEndDate,1)));
+                listafull.add(new StatDTO(stringFromDate, stringToDate, earning));
+                firstDayOfWeek = plusDaysToDate(firstDayOfWeek, 7);
+            } while (firstDayOfWeek.before(endDate) || firstDayOfWeek.equals(endDate));
             return new ResponseEntity<>(listafull, HttpStatus.OK);
         }
-        else{
-            //MONTHLY
-            SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
-            List<List> rows = transactionRepository.findStatsByUserIdMonthly(id, startDate, endDate);
-            TreeMap<String, StatDTO> lista = new TreeMap();
-            for (int i = 0; i < rows.size(); i++) {
-                List row = rows.get(i);
-                String stringMonth = row.get(0).toString();
-                String stringYear = row.get(1).toString();
-                BigDecimal earning = new BigDecimal(row.get(2).toString());
-                Date firstDayOfMonth = getRangeFromMonthYear(Integer.parseInt(stringMonth), Integer.parseInt(stringYear), 0);
-                Date lastDayOfMonth = getRangeFromMonthYear(Integer.parseInt(stringMonth), Integer.parseInt(stringYear), 1);
-                String from, to;
-                if (firstDayOfMonth.before(startDate)){from = formatDate.format(startDate);}
-                else{ from = formatDate.format(firstDayOfMonth);}
-                if (lastDayOfMonth.after(endDate)){ to = formatDate.format(endDate);}
-                else{ to = formatDate.format(lastDayOfMonth);}
-                String key = from + "#" + to;
-                lista.put(key, new StatDTO(from, to, earning));
+
+        else {
+            // MONTHLY
+            rows = transactionRepository.findStatsByUserIdMonthly(id, startDate, endDate);
+            for (Map<String, Object> row : rows){
+                fromDate = formatDate.parse(row.get("fromdate").toString());
+                toDate = formatDate.parse(row.get("todate").toString());
+                earning = new BigDecimal(row.get("earning").toString());
+                if (fromDate.before(startDate)) {
+                    fromDate = startDate;
+                }
+                if (toDate.after(endDate)) {
+                    toDate = endDate;
+                }
+                stringFromDate = formatDate.format(fromDate);
+                stringToDate = formatDate.format(toDate);
+                key = stringFromDate + "#" + stringToDate;
+                lista.put(key, new StatDTO(stringFromDate, stringToDate, earning));
             }
-            // Relleno el MONTHLY con 0
-            BigDecimal earning;
-            List<StatDTO> listafull = new ArrayList<StatDTO>();
-            int monthStartDate = getMonthAndYearFromDate(startDate,0);
-            int yearStartDate = getMonthAndYearFromDate(startDate,1);
-            int monthEndDate = getMonthAndYearFromDate(endDate,0);
-            int yearEndDate = getMonthAndYearFromDate(endDate,1);
-            Date firstDayOfMonthStartDate =  getRangeFromMonthYear(monthStartDate, yearStartDate,0);
-            Date lastDayOfMonthEndDate =  getRangeFromMonthYear(monthEndDate, yearEndDate,1);
-            Date date = firstDayOfMonthStartDate;
-            do{
-                Date firstDayOfMonth = date;
-                Date lastDayOfMonth = plusDaysToDate(plusMonthsToDate(date,1),-1);
-                String from, to;
-                if (firstDayOfMonth.before(startDate)){from = formatDate.format(startDate);}
-                else{ from = formatDate.format(firstDayOfMonth);}
-                if (lastDayOfMonth.after(endDate)){ to = formatDate.format(endDate);}
-                else{ to = formatDate.format(lastDayOfMonth);}
-                String key = from + "#" + to;
+            // Fill MONTHLY with 0
+            Date firstDayOfMonth = getFirstDayOfMonth(startDate);
+            do {
+                Date lastDayOfMonth = plusDaysToDate(plusMonthsToDate(firstDayOfMonth, 1),-1);
+                if (firstDayOfMonth.before(startDate)) {
+                    fromDate = startDate;
+                } else {
+                    fromDate = firstDayOfMonth;
+                }
+                if (lastDayOfMonth.after(endDate)) {
+                    toDate = endDate;
+                } else {
+                    toDate = lastDayOfMonth;
+                }
+                stringFromDate = formatDate.format(fromDate);
+                stringToDate = formatDate.format(toDate);
+                key = stringFromDate + "#" + stringToDate;
                 boolean isKeyPresent = lista.containsKey(key);
                 if (isKeyPresent) {
                     earning = lista.get(key).getEarning();
                 } else {
                     earning = new BigDecimal(0);
                 }
-                listafull.add(new StatDTO(from, to, earning));
-                date = plusDaysToDate(lastDayOfMonth, 1);
-            }while(date.before(lastDayOfMonthEndDate) || date.equals(lastDayOfMonthEndDate));
+                listafull.add(new StatDTO(stringFromDate, stringToDate, earning));
+                firstDayOfMonth = plusMonthsToDate(firstDayOfMonth, 1);
+            } while (firstDayOfMonth.before(endDate) || firstDayOfMonth.equals(endDate));
             return new ResponseEntity<>(listafull, HttpStatus.OK);
         }
-
     }
 
-    public int getWeekAndYearFromDate(Date date, int WeekOrYear){
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        //calendar.setFirstDayOfWeek(Calendar.SUNDAY);
-        calendar.set(Calendar.HOUR_OF_DAY, 0); // ! clear would not reset the hour of day !
-        calendar.clear(Calendar.MINUTE);
-        calendar.clear(Calendar.SECOND);
-        calendar.clear(Calendar.MILLISECOND);
-        if (WeekOrYear == 0){
-            int week = calendar.get(Calendar.WEEK_OF_YEAR);
-            return week-1;
-        }
-        else{
-            int year = calendar.get(Calendar.YEAR);
-            return year;
-        }
-    }
-
-    public int getMonthAndYearFromDate(Date date, int MonthOrYear){
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        //calendar.setFirstDayOfWeek(Calendar.SUNDAY);
-        calendar.set(Calendar.HOUR_OF_DAY, 0); // ! clear would not reset the hour of day !
-        calendar.clear(Calendar.MINUTE);
-        calendar.clear(Calendar.SECOND);
-        calendar.clear(Calendar.MILLISECOND);
-        if (MonthOrYear == 0){
-            int month = calendar.get(Calendar.MONTH);
-            return month+1;
-        }
-        else{
-            int year = calendar.get(Calendar.YEAR);
-            return year;
-        }
-    }
-
-    public Date getRangeFromWeekYear(int week, int year, int StartOrEnd) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.clear();
-        //calendar.setFirstDayOfWeek(Calendar.SUNDAY);
-        calendar.set(Calendar.HOUR_OF_DAY, 0); // ! clear would not reset the hour of day !
-        calendar.clear(Calendar.MINUTE);
-        calendar.clear(Calendar.SECOND);
-        calendar.clear(Calendar.MILLISECOND);
-        calendar.set(Calendar.YEAR, year);
-        calendar.set(Calendar.WEEK_OF_YEAR, week);
-        calendar.set(Calendar.DAY_OF_WEEK, 1);
-        if (StartOrEnd == 0) {
-            Date sDate = calendar.getTime();
-            return sDate;
-        }
-        else{
-            calendar.add(Calendar.DATE, 6);
-            Date eDate = calendar.getTime();
-            return eDate;
-        }
-    }
-
-
-    public Date getRangeFromMonthYear(int month, int year, int StartOrEnd) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.clear();
-        //calendar.setFirstDayOfWeek(Calendar.SUNDAY);
-        calendar.set(Calendar.HOUR_OF_DAY, 0); // ! clear would not reset the hour of day !
-        calendar.clear(Calendar.MINUTE);
-        calendar.clear(Calendar.SECOND);
-        calendar.clear(Calendar.MILLISECOND);
-        calendar.set(Calendar.YEAR, year);
-        calendar.set(Calendar.MONTH, month-1);
-        calendar.set(Calendar.DAY_OF_MONTH, 1);
-        if (StartOrEnd == 0) {
-            Date sDate = calendar.getTime();
-            return sDate;
-        }
-        else{
-            calendar.set(Calendar.DAY_OF_MONTH,calendar.getActualMaximum(calendar.DAY_OF_MONTH));
-            Date eDate = calendar.getTime();
-            return eDate;
-        }
-    }
-
-    public int GetDaysBetweenTwoDates(Date startDate, Date endDate){
-        return (int)( (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    }
-
-    public static Date plusDaysToDate(Date date, int days){
-        if (days==0) return date;
+    public static Date plusDaysToDate(Date date, int days) {
+        if (days == 0) return date;
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
         calendar.add(Calendar.DAY_OF_YEAR, days);
@@ -292,6 +209,22 @@ public class TransactionController {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
         calendar.add(Calendar.MONTH, months);
+        return calendar.getTime();
+    }
+
+    public static Date getFirstDayOfWeek(Date date){
+        Calendar calendar = Calendar.getInstance();
+        calendar.setFirstDayOfWeek(Calendar.SUNDAY);
+        calendar.setTime(date);
+        calendar.set(Calendar.DAY_OF_WEEK, 1);
+        return calendar.getTime();
+    }
+
+    public static Date getFirstDayOfMonth(Date date){
+        Calendar calendar = Calendar.getInstance();
+        calendar.setFirstDayOfWeek(Calendar.SUNDAY);
+        calendar.setTime(date);
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
         return calendar.getTime();
     }
 
